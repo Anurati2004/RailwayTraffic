@@ -3,6 +3,8 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "homepage": "https://Anurati2004.github.io/RailwayTraffic",
+
   "scripts": {
     "dev": "vite",
     "build": "vite build",
