@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -16,18 +15,40 @@ const trainIcon = (isDelayed) =>
   });
 
 const toMinutes = (time) => {
+  if (!time) return 0;
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m;
 };
 
-export default function SimulationPage({ trains, updateSchedule }) {
+export default function SimulationPage() {
+  const [trains, setTrains] = useState([]);
   const [simTime, setSimTime] = useState(600); // 10:00 start
   const [running, setRunning] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [recommendations, setRecommendations] = useState([]);
-  const [disruptionTrain, setDisruptionTrain] = useState(trains[0]?.id || 1);
+  const [disruptionTrain, setDisruptionTrain] = useState("");
   const [disruptionCause, setDisruptionCause] = useState("Climate");
   const [isFullScreen, setIsFullScreen] = useState(false);
+
+  // 🔹 Fetch train data from backend
+  useEffect(() => {
+    const fetchTrains = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/schedule");
+        const data = await res.json();
+        setTrains(data.data.trains);
+        if (data.data.trains.length > 0) {
+          setDisruptionTrain(data.data.trains[0].trainNo); // default first train
+        }
+      } catch (err) {
+        console.error("Error fetching trains:", err);
+      }
+    };
+
+    fetchTrains();
+    const interval = setInterval(fetchTrains, 10000); // refresh every 10s
+    return () => clearInterval(interval);
+  }, []);
 
   // Clock update
   useEffect(() => {
@@ -57,6 +78,14 @@ export default function SimulationPage({ trains, updateSchedule }) {
     updateSchedule(disruptionTrain, action);
   };
 
+  const updateSchedule = (trainId, action) => {
+    setTrains((prev) =>
+      prev.map((t) =>
+        t.trainNo === trainId ? { ...t, status: action } : t
+      )
+    );
+  };
+
   const acceptRecommendation = (rec) => {
     updateSchedule(rec.trainId, rec.actionType);
     setRecommendations((prev) => prev.filter((r) => r.id !== rec.id));
@@ -73,14 +102,14 @@ export default function SimulationPage({ trains, updateSchedule }) {
     return `${hh.toString().padStart(2, "0")}:${mm.toString().padStart(2, "0")}`;
   };
 
-  // Fake positions for demo (latitude/longitude) — you can use real API later
+  // Fake positions for demo
   const getTrainLatLng = (train, index) => {
     const baseLat = 22.57;
     const baseLng = 88.36;
     const journeyDuration = 30;
-    const diff = (simTime - toMinutes(train.time) + 1440) % 1440;
-    let offset = (diff / journeyDuration) * 0.02; // small movement
-    if (train.dir === "Down") offset = -offset;
+    const diff = (simTime - toMinutes(train.arrives) + 1440) % 1440;
+    let offset = (diff / journeyDuration) * 0.02;
+    if (train.direction === "Down") offset = -offset;
     return [baseLat + index * 0.001, baseLng + offset];
   };
 
@@ -100,7 +129,9 @@ export default function SimulationPage({ trains, updateSchedule }) {
               className="ml-2 px-2 py-1 border rounded w-full"
             >
               {trains.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
+                <option key={t.trainNo} value={t.trainNo}>
+                  {t.name} ({t.trainNo})
+                </option>
               ))}
             </select>
           </label>
@@ -144,7 +175,7 @@ export default function SimulationPage({ trains, updateSchedule }) {
           </div>
         </div>
 
-        {/* Center Panel - Clickable Map */}
+        {/* Center Panel - Map */}
         <div
           className="flex-1 bg-white p-4 rounded shadow-lg cursor-pointer"
           onClick={() => setIsFullScreen(true)}
@@ -154,20 +185,18 @@ export default function SimulationPage({ trains, updateSchedule }) {
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             {trains.map((train, i) => {
               const pos = getTrainLatLng(train, i);
-              const isDelayed = train.status === "Delayed" || train.status === "Hold";
+              const isDelayed = train.status.includes("Delayed") || train.status === "Hold";
               return (
-                <Marker
-                  key={train.id}
-                  position={pos}
-                  icon={trainIcon(isDelayed)}
-                >
+                <Marker key={train.trainNo} position={pos} icon={trainIcon(isDelayed)}>
                   <Popup>
                     <div>
-                      <strong>{train.name}</strong>
+                      <strong>{train.name} ({train.trainNo})</strong>
                       <br />
-                      Type: {train.type}
+                      Direction: {train.direction}
                       <br />
-                      Time: {train.time}
+                      Arrives: {train.arrives}
+                      <br />
+                      Departs: {train.departs}
                       <br />
                       Status: {train.status}
                     </div>
@@ -188,7 +217,7 @@ export default function SimulationPage({ trains, updateSchedule }) {
               if (rec.actionType === "Hold") badgeColor = "bg-yellow-200 text-yellow-800";
               if (rec.actionType === "Rerouted") badgeColor = "bg-purple-200 text-purple-800";
 
-              const train = trains.find((t) => t.id === rec.trainId);
+              const train = trains.find((t) => t.trainNo === rec.trainId);
 
               return (
                 <div
@@ -201,7 +230,7 @@ export default function SimulationPage({ trains, updateSchedule }) {
                     </span>
                   </div>
                   <p className="mt-1 text-gray-600 text-sm">
-                    {train?.name} → {rec.text}
+                    {train?.name} ({train?.trainNo}) → {rec.text}
                   </p>
                   <div className="flex justify-end space-x-2 mt-2">
                     <button
@@ -238,20 +267,18 @@ export default function SimulationPage({ trains, updateSchedule }) {
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               {trains.map((train, i) => {
                 const pos = getTrainLatLng(train, i);
-                const isDelayed = train.status === "Delayed" || train.status === "Hold";
+                const isDelayed = train.status.includes("Delayed") || train.status === "Hold";
                 return (
-                  <Marker
-                    key={train.id}
-                    position={pos}
-                    icon={trainIcon(isDelayed)}
-                  >
+                  <Marker key={train.trainNo} position={pos} icon={trainIcon(isDelayed)}>
                     <Popup>
                       <div>
-                        <strong>{train.name}</strong>
+                        <strong>{train.name} ({train.trainNo})</strong>
                         <br />
-                        Type: {train.type}
+                        Direction: {train.direction}
                         <br />
-                        Time: {train.time}
+                        Arrives: {train.arrives}
+                        <br />
+                        Departs: {train.departs}
                         <br />
                         Status: {train.status}
                       </div>
