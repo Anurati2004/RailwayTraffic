@@ -1,4 +1,4 @@
-import * as trainService from "../services/train.service.jsx";
+import * as trainService from "../services/trainservice.jsx";
 
 export async function getTrains(req, res, next) {
   try {

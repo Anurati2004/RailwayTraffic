@@ -1,4 +1,4 @@
-import Train from "../models/train.model.jsx";
+import Train from "../models/trainmodel.jsx";
 
 export async function listTrains(query = {}) {
   return await Train.find(query);

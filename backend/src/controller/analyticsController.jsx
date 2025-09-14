@@ -1,5 +1,5 @@
-import * as optimizationService from "../services/optimization.service.jsx";
-import * as trainService from "../services/train.service.jsx";
+import * as optimizationService from "../services/optimizationservice.jsx";
+import * as trainService from "../services/trainservice.jsx";
 
 export async function suggestOptimizations(req, res, next) {
   try {
