@@ -13,6 +13,7 @@ import {
   Line,
   ResponsiveContainer,
 } from "recharts";
+import { motion } from "framer-motion"; // ✅ animation library
 
 const ReportsPage = () => {
   const [trains, setTrains] = useState([]);
@@ -83,24 +84,39 @@ const ReportsPage = () => {
     <div className="flex flex-col min-h-screen bg-gray-100">
       <Navbar />
 
-      <div className="flex-grow p-6">
+      {/* Animate entire page content */}
+      <motion.div
+        className="flex-grow p-6"
+        initial={{ opacity: 0, y: 30 }}   // start hidden + slightly down
+        animate={{ opacity: 1, y: 0 }}    // fade in + slide up
+        exit={{ opacity: 0, y: -30 }}     // optional fade out
+        transition={{ duration: 0.6, ease: "easeOut" }} // smoothness
+      >
         <h1 className="text-2xl font-bold mb-6">Train Analytics / KPIs</h1>
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {currentKPI.map((kpi) => (
-            <div
+            <motion.div
               key={kpi.metric}
               className="bg-white p-4 rounded shadow text-center"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4 }}
             >
               <h3 className="font-semibold text-gray-600">{kpi.metric}</h3>
               <p className="text-2xl font-bold">{kpi.value}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
 
         {/* Average Delay Chart */}
-        <div className="bg-white p-4 rounded shadow mb-6">
+        <motion.div
+          className="bg-white p-4 rounded shadow mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           <h2 className="text-xl font-semibold mb-4">Average Delay (min)</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={combinedData}>
@@ -112,10 +128,15 @@ const ReportsPage = () => {
               <Bar dataKey="avgDelay" name="Avg Delay" fill="#8884d8" />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </motion.div>
 
         {/* On-Time % Line Chart */}
-        <div className="bg-white p-4 rounded shadow mb-6">
+        <motion.div
+          className="bg-white p-4 rounded shadow mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
           <h2 className="text-xl font-semibold mb-4">On-Time % Comparison</h2>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={combinedData}>
@@ -133,10 +154,15 @@ const ReportsPage = () => {
               />
             </LineChart>
           </ResponsiveContainer>
-        </div>
+        </motion.div>
 
         {/* Throughput Chart */}
-        <div className="bg-white p-4 rounded shadow mb-6">
+        <motion.div
+          className="bg-white p-4 rounded shadow mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7 }}
+        >
           <h2 className="text-xl font-semibold mb-4">Throughput</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={combinedData}>
@@ -148,8 +174,8 @@ const ReportsPage = () => {
               <Bar dataKey="throughput" name="Throughput" fill="#82ca9d" />
             </BarChart>
           </ResponsiveContainer>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       <Footer />
     </div>
