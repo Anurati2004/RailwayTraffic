@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import {
@@ -14,25 +14,57 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const ReportsPage = ({ trains }) => {
-  // Calculate KPIs from live train data
+const ReportsPage = () => {
+  const [trains, setTrains] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 🔹 Fetch train data from backend
+  useEffect(() => {
+    const fetchTrains = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/schedule");
+        const data = await response.json();
+        setTrains(data.data.trains || []);
+      } catch (error) {
+        console.error("Error fetching train data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTrains();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p className="text-xl">Loading Reports...</p>
+      </div>
+    );
+  }
+
+  // 🔹 Calculate KPIs
   const totalTrains = trains.length;
-  const delayedTrains = trains.filter((t) => t.status !== "On Time");
+  const delayedTrains = trains.filter((t) => t.status.includes("Delayed"));
   const avgDelay =
-    delayedTrains.reduce((sum, t) => sum + (t.delay || 0), 0) /
-    (delayedTrains.length || 1);
+    delayedTrains.reduce((sum, t) => {
+      const delayMatch = t.status.match(/(\d+)/);
+      return sum + (delayMatch ? parseInt(delayMatch[1]) : 0);
+    }, 0) / (delayedTrains.length || 1);
+
   const onTimePercent =
     (trains.filter((t) => t.status === "On Time").length / totalTrains) * 100;
+
   const throughput = totalTrains;
 
-  // Current KPIs for display cards
+  // 🔹 KPI display cards
   const currentKPI = [
     { metric: "Average Delay (min)", value: avgDelay.toFixed(1) },
     { metric: "Throughput (# trains)", value: throughput },
     { metric: "On-Time %", value: onTimePercent.toFixed(1) },
   ];
 
-  // Historical example data (for comparison)
+  // 🔹 Historical example data (you can later fetch real historical from backend)
   const historicalKPI = [
     { day: "Mon", avgDelay: 5, throughput: 10, onTimePercent: 90 },
     { day: "Tue", avgDelay: 7, throughput: 11, onTimePercent: 85 },
@@ -41,7 +73,7 @@ const ReportsPage = ({ trains }) => {
     { day: "Fri", avgDelay: 4, throughput: 14, onTimePercent: 92 },
   ];
 
-  // Combine historical data with current KPIs
+  // 🔹 Merge current data with historical
   const combinedData = [
     ...historicalKPI,
     { day: "Current", avgDelay, throughput, onTimePercent },
@@ -55,7 +87,7 @@ const ReportsPage = ({ trains }) => {
         <h1 className="text-2xl font-bold mb-6">Train Analytics / KPIs</h1>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {currentKPI.map((kpi) => (
             <div
               key={kpi.metric}
@@ -113,7 +145,7 @@ const ReportsPage = ({ trains }) => {
               <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey="throughput" name="Throughput" fill="#8884d8" />
+              <Bar dataKey="throughput" name="Throughput" fill="#82ca9d" />
             </BarChart>
           </ResponsiveContainer>
         </div>
